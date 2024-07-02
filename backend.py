@@ -115,7 +115,8 @@ def update_pixels():
     user_id = current_user.id
     data = request.json
     pixels = data['pixels']
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(datetime.timezone.utc)  # Use UTC to avoid timezone issues
+    print(f"Current time: {now}")
 
     with sqlite3.connect(DATABASE) as conn:
         cursor = conn.cursor()
@@ -123,10 +124,13 @@ def update_pixels():
         last_placed = cursor.fetchone()[0]
 
         if last_placed:
-            last_placed_time = datetime.datetime.fromisoformat(last_placed)
+            last_placed_time = datetime.datetime.fromisoformat(last_placed).replace(tzinfo=datetime.timezone.utc)
+            print(f"Last placed time: {last_placed_time}")
             time_since_last_placement = now - last_placed_time
-            if time_since_last_placement < datetime.timedelta(hours=24):
-                next_allowed_time = last_placed_time + datetime.timedelta(hours=24)
+            print(f"Time since last placement: {time_since_last_placement}")
+            if time_since_last_placement < datetime.timedelta(minutes=10):
+                next_allowed_time = last_placed_time + datetime.timedelta(minutes=10)
+                print(f"Next allowed time: {next_allowed_time}")
                 return jsonify({
                     'message': 'You need to wait before placing another pixel',
                     'next_allowed_time': next_allowed_time.isoformat()
@@ -139,7 +143,8 @@ def update_pixels():
             cursor.execute('INSERT INTO pixels (lat, lng, color, user_id, placed_at) VALUES (?, ?, ?, ?, ?)', (lat, lng, color, user_id, now))
         conn.commit()
 
-    next_allowed_time = now + datetime.timedelta(hours=24)
+    next_allowed_time = now + datetime.timedelta(minutes=10)
+    print(f"Next allowed time after placement: {next_allowed_time}")
     return jsonify({"status": "success", "user_id": user_id, "next_allowed_time": next_allowed_time.isoformat()})
 
 @app.route('/api/get_map', methods=['GET'])
@@ -226,11 +231,11 @@ def next_allowed_time():
         cursor.execute('SELECT MAX(placed_at) FROM pixels WHERE user_id = ?', (user_id,))
         last_placed = cursor.fetchone()[0]
         if last_placed:
-            last_placed_time = datetime.datetime.fromisoformat(last_placed)
-            next_allowed_time = last_placed_time + datetime.timedelta(hours=24)
+            last_placed_time = datetime.datetime.fromisoformat(last_placed).replace(tzinfo=datetime.timezone.utc)
+            next_allowed_time = last_placed_time + datetime.timedelta(minutes=10)
             return jsonify({"next_allowed_time": next_allowed_time.isoformat()})
         else:
-            return jsonify({"next_allowed_time": datetime.datetime.now().isoformat()})
+            return jsonify({"next_allowed_time": datetime.datetime.now(datetime.timezone.utc).isoformat()})
 
 if __name__ == '__main__':
     app.run(debug=True)
