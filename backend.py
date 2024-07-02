@@ -216,10 +216,12 @@ def user_stats():
 
         # Format large numbers
         def humanize_large_number(number):
-            for unit in ['', 'K', 'M', 'B', 'T', 'P', 'E']:
-                if abs(number) < 1000.0:
-                    return f"{number:.2f}{unit}"
+            if number < 1000:
+                return str(number)
+            for unit in ['K', 'M', 'B', 'T', 'P', 'E']:
                 number /= 1000.0
+                if number < 1000:
+                    return f"{number:.2f}{unit}"
             return f"{number:.2f}Z"
 
         # Calculate the percentage of pixels placed
@@ -232,7 +234,7 @@ def user_stats():
             'placedPixels': [{'lat': lat, 'lng': lng, 'color': color} for lat, lng, color in placed_pixels],
             'totalWorldPixelsPlaced': humanize_large_number(total_world_pixels_placed),
             'totalUsersWithPixels': humanize_large_number(total_users_with_pixels),
-            'percentagePixelsPlaced': round(percentage_pixels_placed, 10)  # Higher precision
+            'percentagePixelsPlaced': round(percentage_pixels_placed, 20)  # Increased precision for small percentages
         }
 
     return jsonify(user_stats)
