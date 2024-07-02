@@ -59,6 +59,21 @@ def load_user(user_id):
             return User(id=user[0], username=user[1], password=user[2])
     return None
 
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({
+        "message": "Pixel Map Backend is working. Use the provided endpoints to interact with the application.",
+        "endpoints": {
+            "register": "/register (POST)",
+            "login": "/login (POST)",
+            "logout": "/logout (POST)",
+            "update_pixels": "/api/update_pixels (POST)",
+            "get_map": "/api/get_map (GET)",
+            "user_stats": "/api/user_stats (GET)",
+            "next_allowed_time": "/api/next_allowed_time (GET)"
+        }
+    }), 200
+
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json
