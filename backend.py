@@ -70,6 +70,7 @@ def index():
             "update_pixels": "/api/update_pixels (POST)",
             "get_map": "/api/get_map (GET)",
             "user_stats": "/api/user_stats (GET)",
+            "global_stats": "/api/global_stats (GET)",
             "next_allowed_time": "/api/next_allowed_time (GET)"
         }
     }), 200
@@ -210,7 +211,7 @@ def user_stats():
 
         # Earth surface area calculation
         def calculate_percentage_pixels_placed(total_world_pixels_placed):
-            total_grid_cells = 459216307166210800  # Total grid cells on the Earth's surface
+            total_grid_cells = 4592163071662  # Adjusted for more realistic grid cells on the Earth's surface
             percentage_pixels_placed = (total_world_pixels_placed / total_grid_cells) * 100
             return percentage_pixels_placed
 
@@ -234,10 +235,50 @@ def user_stats():
             'placedPixels': [{'lat': lat, 'lng': lng, 'color': color} for lat, lng, color in placed_pixels],
             'totalWorldPixelsPlaced': humanize_large_number(total_world_pixels_placed),
             'totalUsersWithPixels': humanize_large_number(total_users_with_pixels),
-            'percentagePixelsPlaced': round(percentage_pixels_placed, 20)  # Increased precision for small percentages
+            'percentagePixelsPlaced': f"{percentage_pixels_placed:.20f}"  # Format to show a small percentage accurately
         }
 
     return jsonify(user_stats)
+
+@app.route('/api/global_stats', methods=['GET'])
+def global_stats():
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+
+        # World stats
+        cursor.execute('SELECT COUNT(*) FROM pixels')
+        total_world_pixels_placed = cursor.fetchone()[0]
+
+        cursor.execute('SELECT COUNT(DISTINCT user_id) FROM pixels')
+        total_users_with_pixels = cursor.fetchone()[0]
+
+        # Earth surface area calculation
+        def calculate_percentage_pixels_placed(total_world_pixels_placed):
+            total_grid_cells = 4592163071662  # Adjusted for more realistic grid cells on the Earth's surface
+            percentage_pixels_placed = (total_world_pixels_placed / total_grid_cells) * 100
+            return percentage_pixels_placed
+
+        # Format large numbers
+        def humanize_large_number(number):
+            if number < 1000:
+                return str(number)
+            for unit in ['K', 'M', 'B', 'T', 'P', 'E']:
+                number /= 1000.0
+                if number < 1000:
+                    return f"{number:.2f}{unit}"
+            return f"{number:.2f}Z"
+
+        # Calculate the percentage of pixels placed
+        percentage_pixels_placed = calculate_percentage_pixels_placed(total_world_pixels_placed)
+
+        # Prepare the response
+        global_stats = {
+            'totalWorldPixelsPlaced': humanize_large_number(total_world_pixels_placed),
+            'totalUsersWithPixels': humanize_large_number(total_users_with_pixels),
+            'percentagePixelsPlaced': f"{percentage_pixels_placed:.20f}"  # Format to show a small percentage accurately
+        }
+
+    return jsonify(global_stats)
 
 @app.route('/api/next_allowed_time', methods=['GET'])
 @login_required
