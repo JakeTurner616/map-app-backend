@@ -252,10 +252,14 @@ def global_stats():
         cursor.execute('SELECT COUNT(DISTINCT user_id) FROM pixels')
         total_users_with_pixels = cursor.fetchone()[0]
 
+        # Calculate the number of unique grid cells with pixels
+        cursor.execute('SELECT COUNT(*) FROM (SELECT DISTINCT lat, lng FROM pixels)')
+        total_unique_pixels = cursor.fetchone()[0]
+
         # Earth surface area calculation
-        def calculate_percentage_pixels_placed(total_world_pixels_placed):
+        def calculate_percentage_pixels_placed(total_unique_pixels):
             total_grid_cells = 4592163071662  # Adjusted for more realistic grid cells on the Earth's surface
-            percentage_pixels_placed = (total_world_pixels_placed / total_grid_cells) * 100
+            percentage_pixels_placed = (total_unique_pixels / total_grid_cells) * 100
             return percentage_pixels_placed
 
         # Format large numbers
@@ -269,12 +273,13 @@ def global_stats():
             return f"{number:.2f}Z"
 
         # Calculate the percentage of pixels placed
-        percentage_pixels_placed = calculate_percentage_pixels_placed(total_world_pixels_placed)
+        percentage_pixels_placed = calculate_percentage_pixels_placed(total_unique_pixels)
 
         # Prepare the response
         global_stats = {
             'totalWorldPixelsPlaced': humanize_large_number(total_world_pixels_placed),
             'totalUsersWithPixels': humanize_large_number(total_users_with_pixels),
+            'totalUniquePixels': humanize_large_number(total_unique_pixels),
             'percentagePixelsPlaced': f"{percentage_pixels_placed:.20f}"  # Format to show a small percentage accurately
         }
 
